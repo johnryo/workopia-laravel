@@ -66,12 +66,12 @@
           Put "Job Application" as the subject of your email and attach your resume.
         </p>
 
-        <div x-data="{open: false}">
+        <div x-data="{open: false}" id="applicant-form">
           <button @click="open = true" class="block w-full text-center px-5 py-2.5 shadow-sm rounded border text-base font-medium cursor-pointer text-indigo-700 bg-indigo-100 hover:bg-indigo-200">
             Apply Now
           </button>
 
-          <div x-cloak x-show="open" class="fixed inset-0 flex items-center justify-center bg-gray-900 opacity-90">
+          <div x-cloak x-show="open" class="fixed inset-0 flex items-center justify-center bg-gray-900 opacity-100">
             <div @click.away="open = false" class="bg-white p-6 rounded-lg shadow-md w-full max-w-md">
               <h3 class="text-lg font-semibold mb-4">
                 Apply For {{$job->title}}
@@ -102,9 +102,9 @@
         @endauth
       </div>
 
-      {{-- <div class="bg-white p-6 rounded-lg shadow-md mt-6">
+      <div class="bg-white p-6 rounded-lg shadow-md mt-6">
         <div id="map"></div>
-      </div> --}}
+      </div>
     </section>
 
     <aside class="bg-white rounded-lg shadow-md p-3">
@@ -151,12 +151,49 @@
         @endif
       </form>
       @endguest
-      {{-- <a
-        href=""
-        class="mt-10 bg-blue-500 hover:bg-blue-600 text-white font-bold w-full py-2 px-4 rounded-full flex items-center justify-center"
-      >
-        <i class="fas fa-bookmark mr-3"></i> Bookmark Listing
-      </a> --}}
     </aside>
   </div>
 </x-layout>
+
+<link
+  rel="stylesheet"
+  href="https://api.mapbox.com/mapbox-gl-js/v2.7.0/mapbox-gl.css"
+/>
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.7.0/mapbox-gl.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // Mapbox access token
+    mapboxgl.accessToken = "{{ env('MAPBOX_API_KEY') }}";
+
+    // Initialize the map
+    const map = new mapboxgl.Map({
+      container: 'map', // ID of the container element
+      style: 'mapbox://styles/mapbox/streets-v11', // Map style
+      center: [-122.7, 45.5], // Default center
+      zoom: 9, // Default zoom level
+    });
+
+    // Get address from Laravel view
+    const city = '{{ $job->city }}';
+    const state = '{{ $job->state }}';
+    const address = city + ', ' + state;
+
+    // Geocode the address
+    fetch(`/geocode?address=${encodeURIComponent(address)}`)
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.features.length > 0) {
+          const [longitude, latitude] = data.features[0].center;
+
+          // Center the map and add a marker
+          map.setCenter([longitude, latitude]);
+          map.setZoom(14);
+
+          new mapboxgl.Marker().setLngLat([longitude, latitude]).addTo(map);
+        } else {
+          console.error('No results found for the address.');
+        }
+      })
+      .catch((error) => console.error('Error geocoding address:', error));
+  });
+</script>
